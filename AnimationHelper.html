@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Animation Helper</title>
+</head>
+
+<style>
+.path {
+text-align: center;
+
+width :150px;
+}
+.Highlight{
+background-color:white;
+border: 1px solid black;
+
+}
+
+</style>
+
+
+<body>
+
+
+
+<div id="Boxes" style=" position: absolute; top:50px;">
+
+
+
+<canvas class="" id="Back" width="0" height="0"style="position:absolute;" >  </canvas>
+<canvas class="" id="Draw" width="0" height="0"style="position:absolute;" />  </canvas>
+
+
+
+</div>
+
+
+<div id=ArrayDisplay style="position:fixed;">
+
+<button type="button" onclick="ResetAnimationPaths()" id="minimizeroot">Clear Current Path</button>
+<button type="button" onclick="Undo()" id="minimizeroot">Undo</button>
+<!--button type="button" onclick="ResetAllPaths()" id="minimizeroot">Clear All Paths</button-->
+<button type="button" onclick="StartNewPath()" id="Cont">Save path and start new path</button>
+<button type="button" onclick="SaveAsPage()" id="Cont">Create Page</button>
+  <input type="file" accept='.bmp,.jpg,.png' id="imtoload" />
+</div>
+<div id=SpecificPath class='path' style="position:fixed; right:0px; width:150px; height:20%; opacity:1; background-color:#93746c;">
+<span id=Titles class="Highlight">Draw new path</span>
+</div>
+
+<div id=PathDisplay style="position:fixed; right:0px; width:150px; top:20%; height:80%; opacity:1; background-color:#d9d9d9;">
+
+
+</div>
+
+
+
+<script>
+//Load the picture, trace a path by clicking on points, then that path is an array:
+
+//Array=[[point1x,point1y],[point2x,point2y],...]
+//So animating things along paths can be done easily.
+BigPath=[];
+PATH=[];
+IMG='';
+IMARRAY=[];
+ImLink=[];
+function SaveAsPage(){
+
+
+var IMage=IMG.src;
+if(PATH.length>0){
+BigPath.push('['+PATH+']');
+}
+PATH=[];
+var AnimationPaths='['+BigPath+']';
+var link=document.createElement("a");
+
+escapedHTML=escape('<!DOCTYPE html>\n <html>\n<head>\n<meta charset="UTF-8">\n<title>Animation Helper</title>\n</head>\n<body>\n<div id="Boxes" style=" position: absolute; top:50;">\n<canvas class="" id="Back" width="0" height="0" style="position:absolute;" ></canvas>  \n<canvas class="" id="Top" width="0" height="0" style="position:absolute;">  </canvas>\n</div>\n<div id=ArrayDisplay style="position:fixed;">\n<button type="button" onclick="Animate()" id="minimizeroot">Animate</button>\n</div>\n<script>\nBackCont=Back.getContext("2d");\nTopCont=Top.getContext("2d");\nSourceArray=['+IMARRAY+'];\nPictureLink=['+ImLink+'];\nPictureArray=[];\nfor(var i=0;i<SourceArray.length;i++){\nvar P=new Image();\nP.src=SourceArray[i];\nPictureArray.push(P);\nP.onload=function(){ConfirmFlags();};\n}FlagCount=0;\nfunction ConfirmFlags(){\nFlagCount++;\nif(FlagCount>SourceArray.length){\nPopulate();\n}\n}\nAnimatedPath='+AnimationPaths+';\nAnimatedThing=function(x,y,pos,PATH,Picture){\nthis.x_=x;\nthis.y_=y;\nthis.destx_=this.x_;\nthis.desty_=this.y_;\nthis.pos_=pos;\nthis.path_=PATH;\nthis.pic_=Picture;\n}\nAnimatedThing.prototype.draw = function(ctx) {\nvar x=Math.floor(this.x_);\nvar y=Math.floor(this.y_);\nif(this.pic_==-1){\nctx.fillStyle="#0033cc";\nctx.beginPath();\nctx.arc(x,y,3,0,2*Math.PI);\nctx.fill();\nctx.fillStyle="#ccd9ff";\nctx.beginPath();\nctx.arc(x,y-1,1,0,2*Math.PI);\nctx.fill();\n}\nelse{var Ime=PictureArray[this.pic_];\nvar W=Ime.width;\nvar H=Ime.height;\nctx.drawImage(Ime,x-W/2,y-H/2);\n}\n};\nEntitiesManager = function(entities, rendererCtx){\nthis.entities_ = entities;\nthis.rendererCtx_ = rendererCtx;\n};\nEntitiesManager.prototype.draw = function(){\n this.rendererCtx_.clearRect(0,0,this.rendererCtx_.canvas.width,this.rendererCtx_.canvas.height);\n  for (var i = 0; i < this.entities_.length; i++) {\n    this.entities_[i].draw(this.rendererCtx_);\n	}\n};\nfunction setDest(CurrentThing){\nCurrentThing.pos_=(CurrentThing.pos_+1)%AnimatedPath[CurrentThing.path_].length;\nif(CurrentThing.pos_==0){\nCurrentThing.x_=eval(AnimatedPath[CurrentThing.path_][0][0]);\nCurrentThing.y_=eval(AnimatedPath[CurrentThing.path_][0][1]);\nCurrentThing.destx_=CurrentThing.x_;\nCurrentThing.desty_=CurrentThing.y_;\n}\nelse{\nCurrentThing.destx_=eval(AnimatedPath[CurrentThing.path_][CurrentThing.pos_][0]);\nCurrentThing.desty_=eval(AnimatedPath[CurrentThing.path_][CurrentThing.pos_][1]);\n}\n}\nfunction MoveAlong(CurrentThing){\n//change x and y to be 1 unit closer to destx,desty\nvar Dist=Math.hypot(CurrentThing.destx_-CurrentThing.x_, CurrentThing.desty_-CurrentThing.y_);\nvar MoveX=Math.abs((CurrentThing.destx_-CurrentThing.x_)/Dist);\nvar MoveY=Math.abs((CurrentThing.desty_-CurrentThing.y_)/Dist);\nif(CurrentThing.destx_>CurrentThing.x_){\nCurrentThing.x_=CurrentThing.x_+MoveX;\n}\nif(CurrentThing.destx_<CurrentThing.x_){\nCurrentThing.x_=CurrentThing.x_-MoveX;\n}\nif(CurrentThing.desty_>CurrentThing.y_){\nCurrentThing.y_=CurrentThing.y_+MoveY;\n}\nif(CurrentThing.desty_<CurrentThing.y_){\nCurrentThing.y_=CurrentThing.y_-MoveY;\n}\n}\nfunction Populate(){\nvar Num=100;\nvar AnimatArray=[];\nfor(var j=0;j<AnimatedPath.length;j++){\nvar Pos=0;\nvar Pic=PictureLink[j];\nfor(var i=0; i<Num;i++){\nAnimatArray.push(new AnimatedThing(eval(AnimatedPath[j][Pos][0]),eval(AnimatedPath[j][Pos][1]),Pos,j,Pic));\nPos=(Pos+1)%AnimatedPath[j].length;\n}\n}\nAllTheThings=new EntitiesManager(AnimatArray,TopCont);\nAllTheThings.draw();\n}\nfunction Animate(){\nfor(var i=0; i<AllTheThings.entities_.length;i++){\nvar Current=AllTheThings.entities_[i];\nif(Math.abs(Current.x_-Current.destx_)<3 && Math.abs(Current.y_-Current.desty_)<3){\nsetDest(Current);\n}\nMoveAlong(Current);\n}\nAllTheThings.draw();\nrequestAnimationFrame(Animate);\n}\n\nIMG= new Image();\nIMG.src="'+String(IMage)+'";\nIMG.onload=function(){\nBack.width=this.width;\nBack.height=this.height;\nTop.height=this.height;\nTop.width=this.width;\nBackCont.drawImage(IMG,0,0);\nConfirmFlags();\n}\n</'+'script>\n</body>\n</html>');
+
+link.download="CreatedAnimation.html";
+link.href='data:text/plain,'+escapedHTML;
+link.click()
+
+}
+
+CurrentDrawn=-1;
+
+function Undo(){
+
+if(PATH.length!=0){
+PATH.pop()
+BackCont.drawImage(IMG,0,0);
+
+OlX=null;
+OlY=null;
+var localPath=PATH;
+
+for(var i=0;i<localPath.length;i++){
+var Cur=eval(localPath[i]);
+if(typeof Cur[0] == 'string'){
+var XMax=eval(Cur[0].split('-')[0].split('*(')[1]);
+var XMin=eval(Cur[0].split('+')[1].split(')')[0]);
+var YMax=eval(Cur[1].split('-')[0].split('*(')[1]);
+var YMin=eval(Cur[1].split('+')[1].split(')')[0]);
+var x=(XMax+XMin)/2;
+var y=(YMax+YMin)/2;
+var W=XMax-XMin;
+var H=YMax-YMin;
+BackCont.fillStyle="#FF0000";
+  BackCont.fillRect(XMin,YMin,W,H);
+  BackCont.fillStyle="#ffffff";
+BackCont.fillRect(XMin+1,YMin+1,W-2,H-2);
+}
+else{
+x=Cur[0];
+y=Cur[1];
+BackCont.fillStyle="#FF0000";
+BackCont.fillRect(x-2,y-2,4,4);
+BackCont.fillStyle="#ffffff";
+BackCont.fillRect(x-1,y-1,2,2);
+}
+
+if(OlX!=null){
+BackCont.strokeStyle='#000000';
+  BackCont.beginPath();
+  BackCont.moveTo(OlX,OlY);
+  BackCont.lineTo(x,y);
+  BackCont.stroke();
+  BackCont.closePath();
+}
+OlX=x;
+OlY=y;
+
+}
+}
+}
+
+function DeletePath(PathNum){
+LoadPath(PathNum);
+var StayNum=BigPath.length
+BigPath.splice(PathNum,1);
+var IND=ImLink[PathNum];
+if(IMARRAY.indexOf(IND)!=-1){
+IMARRAY.splice(IND,1);
+}
+ImLink.splice(PathNum,1);
+var But=document.getElementById('Path_'+(PathNum+1));
+if(But!=null){
+But.parentNode.removeChild(But);
+}
+
+
+
+for(var i=PathNum+1;i<StayNum;i++){
+var But=document.getElementById('Path_'+(i+1));
+But.id='Path_'+(i);
+But.textContent='Path '+i;
+But.onclick=function(){LoadPath(eval(this.id.split('_')[1])-1);};
+}
+}
+
+
+function LoadPath(PathNum){
+var But=document.getElementById('DPath_'+PathNum);
+if(But!=null){
+But.parentNode.removeChild(But);
+}
+var But=document.getElementById('SPath_'+PathNum);
+if(But!=null){
+But.parentNode.removeChild(But);
+}
+var But=document.getElementById('DPath_'+CurrentDrawn);
+if(But!=null){
+But.parentNode.removeChild(But);
+}
+var But=document.getElementById('SPath_'+CurrentDrawn);
+if(But!=null){
+But.parentNode.removeChild(But);
+}
+
+
+if(CurrentDrawn!=PathNum){
+Titles.textContent='Selected Path:'+(PathNum+1);
+var CurBut=document.createElement('button');
+CurBut.className='path';
+SpecificPath.appendChild(CurBut);
+CurBut.textContent='Delete Path '+(PathNum+1);
+CurBut.id='DPath_'+PathNum;
+CurBut.onclick=function(){DeletePath(eval(this.id.split('_')[1]));};
+
+var INMake=document.createElement('input');
+INMake.type='file';
+INMake.accept='.bmp,.jpg,.png';
+INMake.id='SPath_'+PathNum;
+SpecificPath.appendChild(INMake);
+INMake.addEventListener('change', LoadSprite, false);
+
+CurrentDrawn=PathNum;
+BackCont.drawImage(IMG,0,0);
+OlX=null;
+OlY=null;
+var localPath=eval(BigPath[PathNum]);
+
+for(var i=0;i<localPath.length;i++){
+var Cur=localPath[i];
+if(typeof Cur[0] == 'string'){
+var XMax=eval(Cur[0].split('-')[0].split('*(')[1]);
+var XMin=eval(Cur[0].split('+')[1].split(')')[0]);
+var YMax=eval(Cur[1].split('-')[0].split('*(')[1]);
+var YMin=eval(Cur[1].split('+')[1].split(')')[0]);
+var x=(XMax+XMin)/2;
+var y=(YMax+YMin)/2;
+var W=XMax-XMin;
+var H=YMax-YMin;
+BackCont.fillStyle="#FF0000";
+  BackCont.fillRect(XMin,YMin,W,H);
+  BackCont.fillStyle="#ffffff";
+BackCont.fillRect(XMin+1,YMin+1,W-2,H-2);
+}
+else{
+x=Cur[0];
+y=Cur[1];
+BackCont.fillStyle="#FF0000";
+BackCont.fillRect(x-2,y-2,4,4);
+BackCont.fillStyle="#ffffff";
+BackCont.fillRect(x-1,y-1,2,2);
+}
+
+if(OlX!=null){
+BackCont.strokeStyle='#000000';
+  BackCont.beginPath();
+  BackCont.moveTo(OlX,OlY);
+  BackCont.lineTo(x,y);
+  BackCont.stroke();
+  BackCont.closePath();
+}
+OlX=x;
+OlY=y;
+
+}
+}
+else{
+
+Titles.textContent='Draw new path';
+BackCont.drawImage(IMG,0,0);
+OlX=null;
+OlY=null;
+CurrentDrawn=-1;
+}
+
+}
+
+function StartNewPath(){
+if(PATH.length>0){
+BigPath.push('['+PATH+']');
+ImLink.push(-1);
+
+var CurBut=document.createElement('button');
+CurBut.className='path';
+PathDisplay.appendChild(CurBut);
+CurBut.textContent='Path '+BigPath.length;
+CurBut.id='Path_'+BigPath.length;
+
+CurBut.onclick=function(){LoadPath(eval(this.id.split('_')[1])-1);};
+
+
+PATH=[];
+BackCont.drawImage(IMG,0,0);
+OlX=null;
+OlY=null;
+}
+}
+
+function ResetAllPaths(){
+BigPath=[];
+PATH=[];
+BackCont.drawImage(IMG,0,0);
+OlX=null;
+OlY=null;
+}
+
+function ResetAnimationPaths(){
+PATH=[];
+BackCont.drawImage(IMG,0,0);
+OlX=null;
+OlY=null;
+}
+function copyToClipboard(text) {
+if(PATH.length>0){
+BigPath.push('['+PATH+']');
+}
+PATH=[];
+
+}
+
+
+BackCont=Back.getContext('2d');
+DrawCont=Draw.getContext('2d');
+
+BackCont.strokeStyle="#000000";
+OlX=null;
+OlY=null;
+
+Startx=null;
+Starty=null;
+clicked=false;
+moved=false;
+
+Draw.addEventListener('mousedown', function(evt) {
+  var rect = Back.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+  clicked=true;
+  Startx=x;
+  Starty=y;
+  });
+  Draw.addEventListener('mousemove', function(evt) {
+  if(clicked){
+  moved=true;
+  var rect = Back.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+  var W=x-Startx;
+  var H=y-Starty;
+  DrawCont.clearRect(0,0,Draw.width, Draw.height);
+  DrawCont.fillRect(Startx,Starty,W,H);
+  }
+  
+  });
+    Draw.addEventListener('mouseup', function(evt) {
+  var rect = Back.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+	clicked=false;
+
+	if(moved){
+	
+	 if(OlX!=null){
+ BackCont.strokeStyle='#000000';
+  BackCont.beginPath();
+  BackCont.moveTo(OlX,OlY);
+  BackCont.lineTo((x+Startx)/2,(y+Starty)/2);
+
+  BackCont.stroke();
+  BackCont.closePath();
+  }
+  OlX=(x+Startx)/2;
+  OlY=(y+Starty)/2;
+	
+	moved=false;
+  var W=Math.abs(x-Startx);
+  var H=Math.abs(y-Starty);
+  
+	var Left=Math.min(x,Startx);
+		var Right=Math.max(x,Startx);
+	var Top=Math.min(y,Starty);
+var Bottom=Math.max(y,Starty);
+	PATH.push('["Math.floor(Math.random()*('+Right+'-'+Left+')+'+Left+')","Math.floor(Math.random()*('+Bottom+'-'+Top+')+'+Top+')"]');
+	DrawCont.clearRect(0,0,Draw.width, Draw.height);
+	BackCont.fillStyle="#FF0000";
+	BackCont.fillRect(Left,Top,W,H);
+	  BackCont.fillStyle="#ffffff";
+BackCont.fillRect(Left+1,Top+1,W-2,H-2);
+	}
+	else{
+		 if(OlX!=null){
+		 BackCont.strokeStyle='#000000';
+  BackCont.beginPath();
+  BackCont.moveTo(OlX,OlY);
+  BackCont.lineTo(x,y);
+
+  BackCont.stroke();
+  BackCont.closePath();
+  }
+     OlX=x;
+  OlY=y;
+	  PATH.push('['+x+','+y+']');
+  BackCont.fillStyle="#FF0000";
+  BackCont.fillRect(x-2,y-2,4,4);
+  BackCont.fillStyle="#ffffff";
+  BackCont.fillRect(x-1,y-1,2,2);
+	}
+
+	});
+	Draw.addEventListener('mouseout', function(evt) {
+	if(clicked){
+  var rect = Back.getBoundingClientRect();
+  var x = evt.clientX - rect.left;
+  var y = evt.clientY - rect.top;
+	clicked=false;
+
+	if(moved){
+	
+	 if(OlX!=null){
+ BackCont.strokeStyle='#000000';
+  BackCont.beginPath();
+  BackCont.moveTo(OlX,OlY);
+  BackCont.lineTo((x+Startx)/2,(y+Starty)/2);
+
+  BackCont.stroke();
+  BackCont.closePath();
+  }
+  OlX=(x+Startx)/2;
+  OlY=(y+Starty)/2;
+	
+	moved=false;
+  var W=Math.abs(x-Startx);
+  var H=Math.abs(y-Starty);
+  
+	var Left=Math.min(x,Startx);
+		var Right=Math.max(x,Startx);
+	var Top=Math.min(y,Starty);
+var Bottom=Math.max(y,Starty);
+	PATH.push('["Math.floor(Math.random()*('+Right+'-'+Left+')+'+Left+')","Math.floor(Math.random()*('+Bottom+'-'+Top+')+'+Top+')"]');
+	DrawCont.clearRect(0,0,Draw.width, Draw.height);
+	BackCont.fillStyle="#FF0000";
+	BackCont.fillRect(Left,Top,W,H);
+	  BackCont.fillStyle="#ffffff";
+BackCont.fillRect(Left+1,Top+1,W-2,H-2);
+	}
+	else{
+		 if(OlX!=null){
+		 BackCont.strokeStyle='#000000';
+  BackCont.beginPath();
+  BackCont.moveTo(OlX,OlY);
+  BackCont.lineTo(x,y);
+
+  BackCont.stroke();
+  BackCont.closePath();
+  }
+     OlX=x;
+  OlY=y;
+	  PATH.push('['+x+','+y+']');
+  BackCont.fillStyle="#FF0000";
+  BackCont.fillRect(x-2,y-2,4,4);
+  BackCont.fillStyle="#ffffff";
+  BackCont.fillRect(x-1,y-1,2,2);
+	}
+
+	}});
+  
+
+
+function handleFileSelect(evt) {
+var f = evt.target.files[0];
+var fr = new FileReader();
+fr.onload = function(e){
+IMG= new Image();
+IMG.src=e.target.result;
+
+IMG.onload=function(){
+ResetAnimationPaths();
+Back.width=this.width;
+Back.height=this.height;
+Draw.width=this.width;
+Draw.height=this.height;
+BackCont.drawImage(IMG,0,0);
+}
+};
+fr.readAsDataURL(f);
+}
+function LoadSprite(evt){
+var f = evt.target.files[0];
+var fr = new FileReader();
+fr.onload = function(e){
+if(ImLink[CurrentDrawn]==-1){
+IMARRAY.push('"'+String(e.target.result)+'"');
+ImLink[CurrentDrawn]=IMARRAY.length-1;
+}
+else{
+IMARRAY[ImLink[CurrentDrawn]]='"'+String(e.target.result)+'"';
+}
+}
+
+fr.readAsDataURL(f);
+}
+
+
+   document.getElementById('imtoload').addEventListener('change', handleFileSelect, false);
+</script>
+</body>
+
+
+</html>
